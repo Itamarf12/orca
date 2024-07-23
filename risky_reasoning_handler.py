@@ -1,10 +1,10 @@
 import starlette
-from transformers import AutoTokenizer, AutoModelForCausalLM
+#from transformers import AutoTokenizer, AutoModelForCausalLM
 from ray import serve
 import logging
-from google.cloud import storage
 
-# ray_serve_logger = logging.getLogger("ray.serve")
+
+ray_serve_logger = logging.getLogger("ray.serve")
 # #MODEL = "Open-Orca/Mistral-7B-OpenOrca"
 # MODEL = "microsoft/Orca-2-13b"
 # #MODEL = 'microsoft/DialoGPT-small'
