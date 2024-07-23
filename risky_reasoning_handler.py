@@ -47,7 +47,7 @@ DEVICE = 'auto' # 'cpu'
 #     res = tokenizer.batch_decode([outputs[0][inputs['input_ids'].size(1):]])[0]
 #     return res
 
-@serve.deployment
+@serve.deployment(ray_actor_options={"num_gpus": 4})
 class RiskyReasoning:
     def __init__(self):
         # self.device = DEVICE
