@@ -1,14 +1,14 @@
 import starlette
-#from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from ray import serve
 import logging
 
 
 ray_serve_logger = logging.getLogger("ray.serve")
 # #MODEL = "Open-Orca/Mistral-7B-OpenOrca"
-# MODEL = "microsoft/Orca-2-13b"
+MODEL = "microsoft/Orca-2-13b"
 # #MODEL = 'microsoft/DialoGPT-small'
-# DEVICE = 'cpu'
+DEVICE = 'cpu' # 'auto'
 
 
 
@@ -54,7 +54,7 @@ class RiskyReasoning:
         # ray_serve_logger.warning(f"1111111111111")
         # self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
         # ray_serve_logger.warning(f"2222222222222")
-        # self.model = AutoModelForCausalLM.from_pretrained(MODEL)
+        # self.model = AutoModelForCausalLM.from_pretrained(MODEL, device_map='auto')
         #
         ray_serve_logger.warning(f"3333333333")
 
@@ -70,6 +70,10 @@ class RiskyReasoning:
         #     description = req['description']
         #     response2 = categorical_response1(self.model, self.tokenizer, title, description)
         # ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
+        ray_serve_logger.warning(f"1111111111111")
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
+        ray_serve_logger.warning(f"2222222222222")
+        self.model = AutoModelForCausalLM.from_pretrained(MODEL, device_map=DEVICE)
         response2 = "hello"
         return response2
 
