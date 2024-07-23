@@ -5,10 +5,10 @@ import logging
 
 
 ray_serve_logger = logging.getLogger("ray.serve")
-# #MODEL = "Open-Orca/Mistral-7B-OpenOrca"
-MODEL = "microsoft/Orca-2-13b"
+MODEL = "Open-Orca/Mistral-7B-OpenOrca"
+#MODEL = "microsoft/Orca-2-13b"
 # #MODEL = 'microsoft/DialoGPT-small'
-DEVICE = 'cpu' # 'auto'
+DEVICE = 'auto' # 'cpu'
 
 
 
