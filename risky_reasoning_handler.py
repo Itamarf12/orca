@@ -47,7 +47,7 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
     res = tokenizer.batch_decode([outputs[0][inputs['input_ids'].size(1):]])[0]
     return res
 
-@serve.deployment(ray_actor_options={"num_gpus": 4})
+@serve.deployment(ray_actor_options={"num_gpus": 2})
 class RiskyReasoning:
     def __init__(self):
         ray_serve_logger.warning(f"1111111111111")
