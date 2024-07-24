@@ -51,9 +51,9 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
 class RiskyReasoning:
     def __init__(self):
         ray_serve_logger.warning(f"1111111111111")
-        self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
+        #self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
         ray_serve_logger.warning(f"2222222222222")
-        self.model = AutoModelForCausalLM.from_pretrained(MODEL, device_map=DEVICE)
+        #self.model = AutoModelForCausalLM.from_pretrained(MODEL, device_map=DEVICE)
         ray_serve_logger.warning(f"3333333333")
 
     def translate(self, text: str) -> str:
@@ -61,13 +61,18 @@ class RiskyReasoning:
         return "bbbbbbbbbbbb"
 
     async def __call__(self, request: starlette.requests.Request):
-        req = await request.json()
-        ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
-        response2 = 'NO DATA - missing text field'
-        if 'title' in req and 'description' in req:
-            title = req['title']
-            description = req['description']
-            response2 = categorical_response1(self.model, self.tokenizer, title, description)
+        # req = await request.json()
+        # ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
+        # response2 = 'NO DATA - missing text field'
+        # if 'title' in req and 'description' in req:
+        #     title = req['title']
+        #     description = req['description']
+        #     response2 = categorical_response1(self.model, self.tokenizer, title, description)
+
+        MODEL = "microsoft/Phi-3-medium-128k-instruct"
+        DEVICE = 'auto'
+        model = AutoModelForCausalLM.from_pretrained(MODEL, device_map=DEVICE, trust_remote_code=True)
+        response2 = "fffff"
 
         return response2
 
