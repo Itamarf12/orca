@@ -103,13 +103,6 @@ class RiskyReasoning:
         return "bbbbbbbbbbbb"
 
     async def __call__(self, request: starlette.requests.Request):
-        # ray_serve_logger.warning(f"1111111111111")
-        # self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
-        # ray_serve_logger.warning(f"2222222222222")
-        # self.model = AutoModelForCausalLM.from_pretrained(MODEL, device_map=DEVICE)
-        # ray_serve_logger.warning(f"3333333333")
-
-
         req = await request.json()
         ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
         reason_cat_json = {"error": "NO DATA - missing text field"}
@@ -118,7 +111,8 @@ class RiskyReasoning:
             description = req['description']
             response2 = categorical_response1(self.model, self.tokenizer, title, description)
             reason_cat = extract_risk_info(response2)
-            reason_cat_dict = {"issueRiskPredictionCategory": reason_cat['Risk Category'],
+            risk_category = reason_cat['Risk Category'].replace(" ", "")
+            reason_cat_dict = {"issueRiskPredictionCategory": risk_category,
                                "issueRiskPredictionExplanation": reason_cat['Reason']}
             reason_cat_json = json.dumps(reason_cat_dict)
         return reason_cat_json
