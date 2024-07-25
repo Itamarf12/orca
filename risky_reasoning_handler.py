@@ -1,7 +1,11 @@
+import json
+
 import starlette
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from ray import serve
 import logging
+import re
+import pandas as pd
 
 
 ray_serve_logger = logging.getLogger("ray.serve")
@@ -47,6 +51,44 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
     res = tokenizer.batch_decode([outputs[0][inputs['input_ids'].size(1):]])[0]
     return res
 
+
+
+
+
+
+def clean_text(text):
+    if text.startswith(": "):
+        text = text[2:]
+    if text.endswith("<|im_end|>"):
+        text = text[:-10]
+    return text
+
+
+def extract_risk_info(text):
+    text = clean_text(text)
+    # Using regex to capture the key information after the colon and comma.
+    matches = re.findall(r'Risk Category: (.*?), Reason: (.*)', text)
+
+    if matches:
+        # Assumes only one match is found and takes the first one.
+        risk_category, reason = matches[0]
+
+        # Clean up the reason by removing any trailing special characters.
+        reason = reason.strip().strip('</s>')
+
+        # Create the dictionary with the extracted information.
+        risk_info = {
+            "Risk Category": risk_category.strip(),
+            "Reason": reason,
+        }
+    else:
+        risk_info = {
+            "Risk Category": None,
+            "Reason": None,
+        }
+    return pd.Series(risk_info)
+
+
 @serve.deployment(ray_actor_options={"num_gpus": 3})
 class RiskyReasoning:
     def __init__(self):
@@ -70,12 +112,16 @@ class RiskyReasoning:
 
         req = await request.json()
         ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
-        response2 = 'NO DATA - missing text field'
+        reason_cat_json = {"error": "NO DATA - missing text field"}
         if 'title' in req and 'description' in req:
             title = req['title']
             description = req['description']
             response2 = categorical_response1(self.model, self.tokenizer, title, description)
-        return response2
+            reason_cat = extract_risk_info(response2)
+            reason_cat_dict = {"issueRiskPredictionCategory": reason_cat['Risk Category'],
+                               "issueRiskPredictionExplanation": reason_cat['Reason']}
+            reason_cat_json = json.dumps(reason_cat_dict)
+        return reason_cat_json
 
 
 #app = Translator.options(route_prefix="/translate").bind()
