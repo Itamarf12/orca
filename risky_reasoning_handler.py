@@ -51,10 +51,10 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
 class RiskyReasoning:
     def __init__(self):
         ray_serve_logger.warning(f"1111111111111")
-        # self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
-        # ray_serve_logger.warning(f"2222222222222")
-        # self.model = AutoModelForCausalLM.from_pretrained(MODEL, device_map=DEVICE)
-        # ray_serve_logger.warning(f"3333333333")
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
+        ray_serve_logger.warning(f"2222222222222")
+        self.model = AutoModelForCausalLM.from_pretrained(MODEL, device_map=DEVICE)
+        ray_serve_logger.warning(f"3333333333")
 
     def translate(self, text: str) -> str:
         #return self.model(text)[0]["translation_text"]
