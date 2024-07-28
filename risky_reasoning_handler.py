@@ -5,7 +5,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from ray import serve
 import logging
 import re
-import pandas as pd
 
 
 ray_serve_logger = logging.getLogger("ray.serve")
@@ -15,17 +14,33 @@ MODEL = "microsoft/Orca-2-13b"
 DEVICE = 'auto' # 'cpu'
 
 
-
 def get_prompt1(title, description):
     prompt_prefix = """
-This ticket is classified as high-risk. Based on the context provided, choose the most appropriate risk category and give a concise reason. Respond with just the selected category and its one-sentence justification, in the following format: "Risk Category: [Selected Category], Reason: [Brief Explanation]."
-Risk Categories:
-- Sensitive Data Handling
-- User Access and Identity Management
-- APIs and Web Services
-- External Applications and Integrations
-- Infrastructure and Platform Security
-If none apply, use "Other" for the category.
+
+    This ticket is classified as high-risk.
+
+    Based on the context provided, select the most appropriate risk category from the list below. Use "Other" only if absolutely none of the categories apply. Provide a concise reason that aligns explicitly with the selected category. Additionally, provide:
+    1. Up to 3 relevant questions that the AppSec team can ask during a security review with the developer implementing the ticket.
+    2. A threat model based on the STRIDE model, breaking down the feature request into 5 potential threats and writing "threat stories" that explain the impact and mitigation approach.
+
+    Respond in the following format:
+    "Risk Category: [Selected Category] ### Reason: [Brief Explanation] ### Security Review: [up to 3 questions] ### Threat Model: [threat stories for STRIDE]."
+
+    Risk Categories:
+    - Architecture Design (e.g., flaws in overall system design, insecure architecture patterns, or scalability issues)
+    - GenAi Usage (e.g., risks related to the use of generative AI, such as model vulnerabilities or data poisoning)
+    - Sensitive Data Handling (e.g., exposure or improper handling of personal data, financial information, or confidential business data)
+    - Third Party (e.g., security risks from third-party applications, unsafe integrations with external systems)
+    - User Permissions And Access Management (e.g., improper access controls, weak authentication mechanisms, or identity theft)
+
+    If none of the categories apply, use "Other" as the "Risk Category" with a clear reason why it does not fit any of the provided categories. If you are certain that this ticket is not risky, use "Not Risky" as the "Risk Category".
+
+    *Security Review* should contain context-specific questions derived from the ticket. These questions are intended for the security review with the developer to ensure that all potential security risks are addressed.
+
+    *Threat Model* should be based on the STRIDE model, breaking down the feature request into potential threats and writing "threat stories" that explain the impact and mitigation approach for each of the following threats: Spoofing, Tampering, Repudiation, Information Disclosure, and Denial of Service.
+
+    Sample Response:
+    "Risk Category: Sensitive Data Handling ### Reason: The ticket involves handling user financial data ### Security Review: 1. How is the financial data being secured in transit and at rest? 2. What encryption methods are being used for the data? 3. Are there any access controls in place to ensure only authorized users can access the data? ### Threat Model: 1. *Spoofing*: An attacker may impersonate a user to access sensitive financial data. Mitigation: Implement multi-factor authentication to verify user identities. 2. *Tampering*: Financial data could be altered in transit by an attacker. Mitigation: Use cryptographic protocols like TLS to secure data in transit. 3. *Repudiation*: Users might deny initiating financial transactions. Mitigation: Implement secure logging and audit trails to track transactions. 4. *Information Disclosure*: Unauthorized access to financial data might occur. Mitigation: Encrypt data at rest and implement strict access controls. 5. *Denial of Service*: An attacker could overload the financial system, denying service to legitimate users. Mitigation: Use rate limiting and monitoring to detect and mitigate excessive requests."
     """
     return f"""
 This is the details of a ticket:
@@ -52,10 +67,6 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
     return res
 
 
-
-
-
-
 def clean_text(text):
     if text.startswith(": "):
         text = text[2:]
@@ -67,26 +78,34 @@ def clean_text(text):
 def extract_risk_info(text):
     text = clean_text(text)
     # Using regex to capture the key information after the colon and comma.
-    matches = re.findall(r'Risk Category: (.*?), Reason: (.*)', text)
+    # matches = re.findall(r'Risk Category: (.*?) ### Reason: (.*) ### AppSec Questions: (.*)', text)
+    matches = re.findall(r'Risk Category: (.*?) ### Reason: (.*) ### Security Review: (.*) ### Threat Model: (.*).',
+                         text)
 
     if matches:
         # Assumes only one match is found and takes the first one.
-        risk_category, reason = matches[0]
+        risk_category, reason, questions, threat_model = matches[0]
 
         # Clean up the reason by removing any trailing special characters.
         reason = reason.strip().strip('</s>')
 
         # Create the dictionary with the extracted information.
         risk_info = {
-            "Risk Category": risk_category.strip(),
-            "Reason": reason,
+            "category": risk_category.strip().replace(" ", ""),
+            "reasoning": reason,
+            "securityReviewQuestions": questions,
+            "threatModel": threat_model
+
         }
     else:
         risk_info = {
-            "Risk Category": None,
-            "Reason": None,
+            "category": None,
+            "reasoning": None,
+            "securityReviewQuestions": None,
+            "threatModel": None
         }
-    return pd.Series(risk_info)
+        risk_info_json = json.dumps(risk_info)
+    return risk_info_json
 
 
 @serve.deployment(ray_actor_options={"num_gpus": 3})
@@ -111,11 +130,7 @@ class RiskyReasoning:
             description = req['description']
             response2 = categorical_response1(self.model, self.tokenizer, title, description)
             reason_cat = extract_risk_info(response2)
-            risk_category = reason_cat['Risk Category'].replace(" ", "")
-            reason_cat_dict = {"issueRiskPredictionCategory": risk_category,
-                               "issueRiskPredictionExplanation": reason_cat['Reason']}
-            reason_cat_json = json.dumps(reason_cat_dict)
-        return reason_cat_json
+        return reason_cat
 
 
 #app = Translator.options(route_prefix="/translate").bind()
