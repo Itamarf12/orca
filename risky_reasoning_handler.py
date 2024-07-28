@@ -13,6 +13,15 @@ MODEL = "microsoft/Orca-2-13b"
 # #MODEL = 'microsoft/DialoGPT-small'
 DEVICE = 'auto' # 'cpu'
 
+expected_categories = {
+        "ArchitectureDesign",
+        "GenAiUsage",
+        "SensitiveDataHandling",
+        "ThirdParty",
+        "UserPermissionsAndAccessManagement"
+    }
+UNEXPECTED_CATEGORY_VALUE = "Other"
+
 
 def get_prompt1(title, description):
     prompt_prefix = """
@@ -67,6 +76,13 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
     return res
 
 
+def get_expected_category(category):
+    if category in expected_categories:
+        return category
+    else:
+        return UNEXPECTED_CATEGORY_VALUE
+
+
 def clean_text(text):
     if text.startswith(": "):
         text = text[2:]
@@ -90,8 +106,10 @@ def extract_risk_info(text):
         reason = reason.strip().strip('</s>')
 
         # Create the dictionary with the extracted information.
+
+        expected_category = get_expected_category(risk_category.strip().replace(" ", ""))
         risk_info = {
-            "category": risk_category.strip().replace(" ", ""),
+            "category": expected_category,
             "reasoning": reason,
             "securityReviewQuestions": questions,
             "threatModel": threat_model
