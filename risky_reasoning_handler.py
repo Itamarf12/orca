@@ -68,7 +68,7 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
     """
     user_message = get_prompt1(title, description)
     prompt = f"<|im_start|>system\n{system_message}<|im_end|>\n<|im_start|>user\n{user_message}<|im_end|>\n<|im_start|>assistant"
-    inputs = tokenizer(prompt, return_tensors='pt') #.to('cuda')
+    inputs = tokenizer(prompt, return_tensors='pt').to('cuda')
     outputs = model.generate(
     **inputs, max_new_tokens=256, use_cache=True, do_sample=True,
     temperature=0.2, top_p=0.95)
