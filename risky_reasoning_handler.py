@@ -104,8 +104,7 @@ def extract_risk_info(text):
             "securityReviewQuestions": None,
             "threatModel": None
         }
-        risk_info_json = json.dumps(risk_info)
-    return risk_info_json
+    return risk_info
 
 
 @serve.deployment(ray_actor_options={"num_gpus": 3})
