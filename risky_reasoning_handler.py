@@ -13,6 +13,9 @@ MODEL = "microsoft/Orca-2-13b"
 # #MODEL = 'microsoft/DialoGPT-small'
 DEVICE = 'auto' # 'cpu'
 
+MAX_INPUT_TOKENS = 4000
+MAX_OUTPUT_TOKENS = 1024
+
 expected_categories = {
         "ArchitectureDesign",
         "GenAiUsage",
@@ -34,7 +37,7 @@ Based on the context provided, select the most appropriate risk category from th
 Respond in the following format:
 "Risk Category: [Selected Category] ### Reason: [Brief Explanation] ### Security Review: [up to 3 questions] ### Threat Model: [threat stories for STRIDE]."
 
-Risk Categories:
+*Risk Category* should be one of the following:
 - Architecture Design (e.g., flaws in overall system design, insecure architecture patterns, or scalability issues)
 - GenAi Usage (e.g., risks related to the use of generative AI, such as model vulnerabilities or data poisoning)
 - Sensitive Data Handling (e.g., exposure or improper handling of personal data, financial information, or confidential business data)
@@ -45,10 +48,10 @@ If none of the categories apply, use "Other" as the "Risk Category" with a clear
 
 *Security Review* should contain context-specific questions derived from the ticket. These questions are intended for the security review with the developer to ensure that all potential security risks are addressed.
 
-*Threat Model* should be based on the STRIDE model, breaking down the feature request into potential threats and writing "threat stories" that explain the impact and mitigation approach for each of the following threats: Spoofing, Tampering, Repudiation, Information Disclosure, and Denial of Service.
+*Threat Model* should also contain context-specific information and be based on the STRIDE model, breaking down the feature request into potential threats and writing "threat stories" that explain the impact and mitigation approach for each of the following threats: Spoofing, Tampering, Repudiation, Information Disclosure, and Denial of Service.
 
-Sample Response:
-"Risk Category: Sensitive Data Handling ### Reason: The ticket involves handling user financial data in a cash transfer modal ### Security Review: 1. How is the financial data within the cash transfer modal being secured in transit and at rest? 2. What encryption methods are being used specifically for the data entered in the cash transfer modal? 3. Are there any access controls or authentication mechanisms in place to ensure only authorized users can execute transfers via the cash transfer modal? ### Threat Model: 1. *Spoofing*: An attacker may impersonate a legitimate user to initiate a cash transfer. Mitigation: Implement multi-factor authentication for users accessing the cash transfer modal. 2. *Tampering*: Financial details entered into the cash transfer modal could be altered by an attacker. Mitigation: Use HTTPS to secure the data input and transmission. 3. *Repudiation*: Users might deny authorizing a cash transfer initiated through the modal. Mitigation: Implement secure logging and audit trails that capture user actions within the cash transfer modal. 4. *Information Disclosure*: Sensitive financial information entered into the cash transfer modal might be exposed to unauthorized users. Mitigation: Encrypt data at rest and enforce strict access controls to limit data exposure. 5. *Denial of Service*: An attacker could attempt to flood the cash transfer service, rendering it unavailable for legitimate users. Mitigation: Implement rate limiting and monitoring to detect and mitigate excessive requests targeting the cash transfer modal."
+**Important Note**:
+Security Review and Threat Model must always be **context-specific**. For example, if a ticket is about changing permissions in a specific database, ensure that the "Security Review" questions and the "Threat Model" specifically address issues related to database permissions.
     """
     return f"""
 This is the details of a ticket:
@@ -67,9 +70,9 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
     """
     user_message = get_prompt1(title, description)
     prompt = f"<|im_start|>system\n{system_message}<|im_end|>\n<|im_start|>user\n{user_message}<|im_end|>\n<|im_start|>assistant"
-    inputs = tokenizer(prompt, return_tensors='pt').to('cuda')
+    inputs = tokenizer(prompt, return_tensors='pt', max_length=MAX_INPUT_TOKENS).to('cuda')
     outputs = model.generate(
-    **inputs, max_new_tokens=1024, use_cache=True, do_sample=True,
+    **inputs, max_new_tokens=MAX_OUTPUT_TOKENS, max_new_tokens=1024, use_cache=True, do_sample=True,
     temperature=0.1, top_p=1)
     res = tokenizer.batch_decode([outputs[0][inputs['input_ids'].size(1):]])[0]
     return res
@@ -90,6 +93,17 @@ def clean_text(text):
     return text
 
 
+def clean_result_value(input_string):
+    if input_string is None:
+        return None
+    if len(input_string) < 10 and "N/A" in input_string:
+        return None
+    substring = "</s"
+    if input_string.endswith(substring):
+        return input_string[:-len(substring)]
+    return input_string
+
+
 def extract_risk_info(text):
     text = clean_text(text)
     # Using regex to capture the key information after the colon and comma.
@@ -106,8 +120,8 @@ def extract_risk_info(text):
         risk_info = {
             "category": expected_category,
             "reasoning": reason,
-            "securityReviewQuestions": questions,
-            "threatModel": threat_model.replace('</s', "")
+            "securityReviewQuestions": clean_result_value(questions),
+            "threatModel": clean_result_value(threat_model)
         }
     else:
         risk_info = {
