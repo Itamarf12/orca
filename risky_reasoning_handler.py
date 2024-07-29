@@ -72,7 +72,7 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
     prompt = f"<|im_start|>system\n{system_message}<|im_end|>\n<|im_start|>user\n{user_message}<|im_end|>\n<|im_start|>assistant"
     inputs = tokenizer(prompt, return_tensors='pt', max_length=MAX_INPUT_TOKENS).to('cuda')
     outputs = model.generate(
-    **inputs, max_new_tokens=MAX_OUTPUT_TOKENS, max_new_tokens=1024, use_cache=True, do_sample=True,
+    **inputs, max_new_tokens=MAX_OUTPUT_TOKENS, use_cache=True, do_sample=True,
     temperature=0.1, top_p=1)
     res = tokenizer.batch_decode([outputs[0][inputs['input_ids'].size(1):]])[0]
     return res
