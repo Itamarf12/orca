@@ -126,7 +126,7 @@ def extract_risk_info(text):
     return risk_info
 
 
-@serve.deployment(ray_actor_options={"num_gpus": 3})
+@serve.deployment(ray_actor_options={"num_cpus": 3})
 #@serve.deployment()
 class RiskyReasoning:
     def __init__(self):
