@@ -127,7 +127,7 @@ def extract_risk_info(text):
 
 
 #@serve.deployment(ray_actor_options={"num_gpus": 3})
-@serve.deployment
+@serve.deployment(num_cpus=2)
 class RiskyReasoning:
     def __init__(self):
         ray_serve_logger.warning(f"1111111111111")
