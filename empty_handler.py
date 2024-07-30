@@ -137,13 +137,8 @@ class RiskyReasoning:
     async def __call__(self, request: starlette.requests.Request):
         req = await request.json()
         ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
-        reason_cat_json = {"error": "NO DATA - missing text field"}
-        if 'title' in req and 'description' in req:
-            title = req['title']
-            description = req['description']
-            response2 = categorical_response1(self.model, self.tokenizer, title, description)
-            reason_cat = extract_risk_info(response2)
-        return reason_cat
+
+        return "helllllllooooooo"
 
 
 #app = Translator.options(route_prefix="/translate").bind()

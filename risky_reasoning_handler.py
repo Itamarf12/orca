@@ -13,7 +13,7 @@ MODEL = "microsoft/Orca-2-13b"
 # #MODEL = 'microsoft/DialoGPT-small'
 DEVICE = 'auto' # 'cpu'
 
-MAX_INPUT_TOKENS = 4000
+MAX_INPUT_TOKENS = 3500
 MAX_OUTPUT_TOKENS = 1024
 
 expected_categories = {
