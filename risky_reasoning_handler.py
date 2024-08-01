@@ -1,5 +1,3 @@
-import json
-
 import starlette
 from ray import serve
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -26,33 +24,7 @@ expected_categories = {
 UNEXPECTED_CATEGORY_VALUE = "Other"
 
 
-def get_prompt1(title, description):
-    prompt_prefix = """
-This ticket is classified as high-risk.
-
-Based on the context provided, select the most appropriate risk category from the list below. Use "Other" only if absolutely none of the categories apply. Provide a concise reason that aligns explicitly with the selected category. Additionally, provide:
-1. Up to 3 relevant questions that the AppSec team can ask during a security review with the developer implementing the ticket.
-2. A threat model based on the STRIDE model, breaking down the feature request into 5 potential threats and writing "threat stories" that explain the impact and mitigation approach.
-
-Respond in the following format:
-"Risk Category: [Selected Category] ### Reason: [Brief Explanation] ### Security Review: [up to 3 questions] ### Threat Model: [threat stories for STRIDE]."
-
-*Risk Category* should be one of the following:
-- Architecture Design (e.g., flaws in overall system design, insecure architecture patterns, or scalability issues)
-- GenAi Usage (e.g., risks related to the use of generative AI, such as model vulnerabilities or data poisoning)
-- Sensitive Data Handling (e.g., exposure or improper handling of personal data, financial information, or confidential business data)
-- Third Party (e.g., security risks from third-party applications, unsafe integrations with external systems)
-- User Permissions And Access Management (e.g., improper access controls, weak authentication mechanisms, or identity theft)
-
-If none of the categories apply, use "Other" as the "Risk Category" with a clear reason why it does not fit any of the provided categories. If you are certain that this ticket is not risky, use "Not Risky" as the "Risk Category".
-
-*Security Review* should contain context-specific questions derived from the ticket. These questions are intended for the security review with the developer to ensure that all potential security risks are addressed.
-
-*Threat Model* should also contain context-specific information and be based on the STRIDE model, breaking down the feature request into potential threats and writing "threat stories" that explain the impact and mitigation approach for each of the following threats: Spoofing, Tampering, Repudiation, Information Disclosure, and Denial of Service.
-
-**Important Note**:
-Security Review and Threat Model must always be **context-specific**. For example, if a ticket is about changing permissions in a specific database, ensure that the "Security Review" questions and the "Threat Model" specifically address issues related to database permissions.
-    """
+def get_prompt1(title, description, prompt_prefix):
     return f"""
 This is the details of a ticket:
 title:
@@ -62,13 +34,13 @@ description:
 {prompt_prefix}
     """
 
-def categorical_response1(model, tokenizer, title, description):
+def categorical_response1(model, tokenizer, title, description, prompt_prefix):
     system_message = """
 Role: Application Security (AppSec) Assistant
 Directive: Adhere strictly to the provided guidelines.
 Task: Upon review of the specified Jira ticket, determine and concisely state the security risk it presents.
     """
-    user_message = get_prompt1(title, description)
+    user_message = get_prompt1(title, description, prompt_prefix)
     prompt = f"<|im_start|>system\n{system_message}<|im_end|>\n<|im_start|>user\n{user_message}<|im_end|>\n<|im_start|>assistant"
     inputs = tokenizer(prompt, return_tensors='pt', max_length=MAX_INPUT_TOKENS).to('cuda')
     outputs = model.generate(
@@ -133,6 +105,51 @@ def extract_risk_info(text):
     return risk_info
 
 
+def is_risky_response(model, tokenizer, title, description):
+    is_risky_prompt = """
+This is a ticket, which was marked as risky ticket. 
+Your task: make sure that this ticket is risky. Please go over this ticket and make sure it's risky. If you're not sure mark it as not risky.
+Your answer should be: only "is risky": [bool]. Don't add any explanation
+Sample response:
+"is risky": False
+    """
+    return categorical_response1(model, tokenizer, title, description, is_risky_prompt)
+
+
+def text_generation_response(model, tokenizer, title, description):
+    prompt_prefix = """
+This ticket is classified as high-risk.
+
+Based on the context provided, select the most appropriate risk category from the list below. Use "Other" only if absolutely none of the categories apply. Provide a concise reason that aligns explicitly with the selected category. Additionally, provide:
+1. Up to 3 relevant questions that the AppSec team can ask during a security review with the developer implementing the ticket.
+2. A threat model based on the STRIDE model, breaking down the feature request into 5 potential threats and writing "threat stories" that explain the impact and mitigation approach.
+
+Respond in the following format:
+"Risk Category: [Selected Category] ### Reason: [Brief Explanation] ### Security Review: [up to 3 questions] ### Threat Model: [threat stories for STRIDE]."
+
+*Risk Category* should be one of the following:
+- Architecture Design (e.g., flaws in overall system design, insecure architecture patterns, or scalability issues)
+- GenAi Usage (e.g., risks related to the use of generative AI, such as model vulnerabilities or data poisoning)
+- Sensitive Data Handling (e.g., exposure or improper handling of personal data, financial information, or confidential business data)
+- Third Party (e.g., security risks from third-party applications, unsafe integrations with external systems)
+- User Permissions And Access Management (e.g., improper access controls, weak authentication mechanisms, or identity theft)
+
+If none of the categories apply, use "Other" as the "Risk Category" with a clear reason why it does not fit any of the provided categories. If you are certain that this ticket is not risky, use "Not Risky" as the "Risk Category".
+
+*Security Review* should contain context-specific questions derived from the ticket. These questions are intended for the security review with the developer to ensure that all potential security risks are addressed.
+
+*Threat Model* should also contain context-specific information and be based on the STRIDE model, breaking down the feature request into potential threats and writing "threat stories" that explain the impact and mitigation approach for each of the following threats: Spoofing, Tampering, Repudiation, Information Disclosure, and Denial of Service.
+
+**Important Note**:
+Security Review and Threat Model must always be **context-specific**. For example, if a ticket is about changing permissions in a specific database, ensure that the "Security Review" questions and the "Threat Model" specifically address issues related to database permissions.
+"""
+    return categorical_response1(model, tokenizer, title, description, prompt_prefix)
+
+
+def is_risky_res(res):
+    return "True" in res
+
+
 @serve.deployment(ray_actor_options={"num_gpus": 3})
 class RiskyReasoning:
     def __init__(self):
@@ -153,10 +170,18 @@ class RiskyReasoning:
         if 'title' in req and 'description' in req:
             title = req['title']
             description = req['description']
-            response2 = categorical_response1(self.model, self.tokenizer, title, description)
-            reason_cat = extract_risk_info(response2)
+            response1 = is_risky_response(self.model, self.tokenizer, title, description)
+            if "True" in response1:
+                response2 = text_generation_response(self.model, self.tokenizer, title, description)
+                reason_cat = extract_risk_info(response2)
+            else:
+                reason_cat = {
+                    "Risk Category": None,
+                    "Reason": None,
+                    "Security Review": None,
+                    "Threat Model": None
+                }
         return reason_cat
-
 
 #app = Translator.options(route_prefix="/translate").bind()
 app = RiskyReasoning.bind()
