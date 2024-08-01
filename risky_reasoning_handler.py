@@ -171,6 +171,9 @@ class RiskyReasoning:
             title = req['title']
             description = req['description']
             response1 = is_risky_response(self.model, self.tokenizer, title, description)
+            ray_serve_logger.warning(f"title = {title}")
+            ray_serve_logger.warning(f"description = {description}")
+            ray_serve_logger.warning(f"response1 = {response1}")
             if "True" in response1:
                 response2 = text_generation_response(self.model, self.tokenizer, title, description)
                 reason_cat = extract_risk_info(response2)
