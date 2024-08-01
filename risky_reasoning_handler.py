@@ -109,10 +109,12 @@ def is_risky_response(model, tokenizer, title, description):
     is_risky_prompt = """
 This is a ticket, which was marked as risky ticket. 
 Your task: make sure that this ticket is risky. Please go over this ticket and make sure it's risky. If you're not sure mark it as not risky.
-Your answer should be: only "is risky": [bool]. Don't add any explanation
+Respond in the following format:
+"### is risky: [bool] ###"
+
 Sample response:
-"is risky": False
-    """
+"### is risky: False ###"
+"""
     return categorical_response1(model, tokenizer, title, description, is_risky_prompt)
 
 
