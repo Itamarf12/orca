@@ -6,9 +6,9 @@ import re
 
 
 ray_serve_logger = logging.getLogger("ray.serve")
+ray_serve_logger.setLevel(logging.DEBUG)
 #MODEL = "Open-Orca/Mistral-7B-OpenOrca"
 MODEL = "microsoft/Orca-2-13b"
-# #MODEL = 'microsoft/DialoGPT-small'
 DEVICE = 'auto' # 'cpu'
 
 MAX_INPUT_TOKENS = 3500
