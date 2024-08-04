@@ -18,7 +18,7 @@ expected_categories = {
         "ArchitectureDesign",
         "GenAiUsage",
         "SensitiveDataHandling",
-        "ThirdParty",
+        "ThirdPartyIntegrationsAndDependencies",
         "UserPermissionsAndAccessManagement"
     }
 UNEXPECTED_CATEGORY_VALUE = "Other"
@@ -89,11 +89,17 @@ def extract_risk_info(text):
         reason = reason.strip()
         # Create the dictionary with the extracted information.
         expected_category = get_expected_category(risk_category.strip().replace(" ", ""))
+
+        security_review_questions_clean = clean_result_value(questions)
+        security_review_questions = convert_to_markdown(security_review_questions_clean)
+        threat_model_clean = clean_result_value(threat_model)
+        threat_model = convert_to_markdown(threat_model_clean)
+
         risk_info = {
             "category": expected_category,
             "reasoning": reason,
-            "securityReviewQuestions": clean_result_value(questions),
-            "threatModel": clean_result_value(threat_model)
+            "securityReviewQuestions": security_review_questions,
+            "threatModel": threat_model
         }
     else:
         risk_info = {
@@ -151,41 +157,55 @@ Security Review and Threat Model must always be **context-specific**. For exampl
 def is_risky_res(res):
     return "True" in res
 
+def convert_to_markdown(text):
+    # Use a regular expression to find all items that start with a digit followed by a closing parenthesis
+    matches = re.findall(r'\d+\) .*?(?=\d+\)|$)', text)
+    # Initialize a list to hold formatted markdown lines
+    markdown_lines = []
+    # Iterate through the matches and format them as markdown list items
+    for match in matches:
+        # Strip the text to remove any leading/trailing whitespaces
+        markdown_lines.append(match.strip().replace(')', '.', 1))
+    # Join the markdown lines with new lines to form the final markdown string
+    markdown_text = '\n'.join(markdown_lines)
+    return markdown_text
+
+
+def is_input_valid(req):
+    title = None
+    description = None
+    if 'title' in req and 'description' in req:
+        title = req['title']
+        description = req['description']
+    if title is None or description is None:
+        ray_serve_logger.error(f"Risky-Feature-Reasoning-Inference : Input request is not valid. request = {req}")
+        return None, None
+    return title, description
 
 @serve.deployment(ray_actor_options={"num_gpus": 3})
 class RiskyReasoning:
     def __init__(self):
-        ray_serve_logger.warning(f"1111111111111")
+        ray_serve_logger.debug(f"Risky-Feature-Reasoning-Inference : Start Model loading ...")
         self.tokenizer = AutoTokenizer.from_pretrained(MODEL)
-        ray_serve_logger.warning(f"2222222222222")
         self.model = AutoModelForCausalLM.from_pretrained(MODEL, device_map=DEVICE)
-        ray_serve_logger.warning(f"3333333333")
-
-    def translate(self, text: str) -> str:
-        #return self.model(text)[0]["translation_text"]
-        return "bbbbbbbbbbbb"
+        ray_serve_logger.debug(f"Is-Risky-Feature-Inference : Model was loaded successfully.")
 
     async def __call__(self, request: starlette.requests.Request):
         req = await request.json()
-        ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
-        #reason_cat_json = {"error": "NO DATA - missing text field"}
-        if 'title' in req and 'description' in req:
-            title = req['title']
-            description = req['description']
-            response1 = is_risky_response(self.model, self.tokenizer, title, description)
-            ray_serve_logger.warning(f"title = {title}")
-            ray_serve_logger.warning(f"description = {description}")
-            ray_serve_logger.warning(f"response1 = {response1}")
-            if "True" in response1:
-                response2 = text_generation_response(self.model, self.tokenizer, title, description)
-                reason_cat = extract_risk_info(response2)
-            else:
-                reason_cat = {
+        reason_cat = {
                     "Risk Category": None,
                     "Reason": None,
                     "Security Review": None,
                     "Threat Model": None
                 }
+
+        title, description = is_input_valid(req)
+        if title and description:
+            response1 = is_risky_response(self.model, self.tokenizer, title, description)
+            ray_serve_logger.debug(f"Risky-Feature-Reasoning-Inference : response for is risky is {response1}")
+            if "True" in response1:
+                response2 = text_generation_response(self.model, self.tokenizer, title, description)
+                reason_cat = extract_risk_info(response2)
         return reason_cat
 
 #app = Translator.options(route_prefix="/translate").bind()
