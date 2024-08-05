@@ -76,6 +76,49 @@ def clean_result_value(input_string):
     return input_string
 
 
+def convert_to_markdown_stride(text):
+    text = convert_to_markdown(text)
+        # Separate each section properly
+    text = re.sub(r'(\d+\.\s)', r'\n\1', text)
+    # Convert each section title to bold
+#     text = re.sub(r'\d+\.\s(\w+.*?):', r'**\1**\n\n- Story:', text)
+    text = re.sub(r'\d+\.\s(\w+.*?):', r'\n**\1**\n\n', text)
+    # Separate 'Impact' with proper Markdown format
+    text = re.sub(r' Impact:', r'\n- Impact:', text)
+    # Separate 'Mitigation' with proper Markdown format
+    text = re.sub(r' Mitigation:', r'\n- Mitigation:', text)
+    # Ensure there's a new line after each mitigation section
+    text = re.sub(r'(\n- Mitigation:.*?(\.|\n))', r'\1\n', text, flags=re.DOTALL)
+    # Ensure only two new lines between sections
+    text = re.sub(r'\n{3,}', r'\n\n', text)
+    return text.strip()
+
+
+def convert_to_markdown_numbers(text):
+    # Use a regular expression to find all items that start with a digit followed by a closing parenthesis
+    matches = re.findall(r'\d+\) .*?(?=\d+\)|$)', text)
+    # Initialize a list to hold formatted markdown lines
+    markdown_lines = []
+    # Iterate through the matches and format them as markdown list items
+    if matches:
+        for match in matches:
+            # Strip the text to remove any leading/trailing whitespaces
+            markdown_lines.append(match.strip().replace(')', '.', 1))
+        # Join the markdown lines with new lines to form the final markdown string
+        markdown_text = '\n'.join(markdown_lines)
+        return markdown_text
+    else:
+        #matches = re.findall(r'\d+\. .*?(?=\d+\)|$)', text)
+        matches = re.findall(r'(\d\..*?)(?=\s?\d\.|$)', text)
+        if matches:
+            for match in matches:
+                markdown_lines.append(match.strip())
+            # Join the markdown lines with new lines to form the final markdown string
+            markdown_text = '\n'.join(markdown_lines)
+            return markdown_text
+        else:
+            return text
+
 def extract_risk_info(text):
     text = clean_text(text)
     # Using regex to capture the key information after the colon and comma.
@@ -89,12 +132,10 @@ def extract_risk_info(text):
         reason = reason.strip()
         # Create the dictionary with the extracted information.
         expected_category = get_expected_category(risk_category.strip().replace(" ", ""))
-
         security_review_questions_clean = clean_result_value(questions)
-        security_review_questions = convert_to_markdown(security_review_questions_clean)
+        security_review_questions = convert_to_markdown_numbers(security_review_questions_clean)
         threat_model_clean = clean_result_value(threat_model)
-        threat_model = convert_to_markdown(threat_model_clean)
-
+        threat_model = convert_to_markdown_stride(threat_model_clean)
         risk_info = {
             "category": expected_category,
             "reasoning": reason,
@@ -130,7 +171,7 @@ This ticket is classified as high-risk.
 
 Based on the context provided, select the most appropriate risk category from the list below. Use "Other" only if absolutely none of the categories apply. Provide a concise reason that aligns explicitly with the selected category. Additionally, provide:
 1. Up to 3 relevant questions that the AppSec team can ask during a security review with the developer implementing the ticket.
-2. A threat model based on the STRIDE model, breaking down the feature request into 5 potential threats and writing "threat stories" that explain the impact and mitigation approach.
+2. A threat model based on the STRIDE model, breaking down the feature request into 6 potential threats and writing "threat stories" that explain the impact and mitigation approach.
 
 Respond in the following format:
 "Risk Category: [Selected Category] ### Reason: [Brief Explanation] ### Security Review: [up to 3 questions] ### Threat Model: [threat stories for STRIDE]."
@@ -142,15 +183,15 @@ Respond in the following format:
 - Third Party (e.g., security risks from third-party applications, unsafe integrations with external systems)
 - User Permissions And Access Management (e.g., improper access controls, weak authentication mechanisms, or identity theft)
 
-If none of the categories apply, use "Other" as the "Risk Category" with a clear reason why it does not fit any of the provided categories. If you are certain that this ticket is not risky, use "Not Risky" as the "Risk Category".
+If none of the categories apply, use "Other" as the "Risk Category" with a clear reason why it does not fit any of the provided categories.
 
-*Security Review* should contain context-specific questions derived from the ticket. These questions are intended for the security review with the developer to ensure that all potential security risks are addressed.
+*Security Review* should contain as much context-specific questions derived from the ticket. These questions are intended for the security review with the developer to ensure that all potential security risks are addressed.
 
-*Threat Model* should also contain context-specific information and be based on the STRIDE model, breaking down the feature request into potential threats and writing "threat stories" that explain the impact and mitigation approach for each of the following threats: Spoofing, Tampering, Repudiation, Information Disclosure, and Denial of Service.
+*Threat Model* should contain as much context-specific information as possible regarding the ticket and be based on the STRIDE model, breaking down the feature request into potential threats and writing "threat stories" that explain the impact and mitigation approach for each of the following threats: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service and Elevation of privilege.
 
 **Important Note**:
 Security Review and Threat Model must always be **context-specific**. For example, if a ticket is about changing permissions in a specific database, ensure that the "Security Review" questions and the "Threat Model" specifically address issues related to database permissions.
-"""
+    """
     return categorical_response1(model, tokenizer, title, description, prompt_prefix)
 
 
@@ -163,13 +204,14 @@ def convert_to_markdown(text):
     # Initialize a list to hold formatted markdown lines
     markdown_lines = []
     # Iterate through the matches and format them as markdown list items
-    for match in matches:
-        # Strip the text to remove any leading/trailing whitespaces
-        markdown_lines.append(match.strip().replace(')', '.', 1))
-    # Join the markdown lines with new lines to form the final markdown string
-    markdown_text = '\n'.join(markdown_lines)
-    return markdown_text
-
+    if matches:
+        for match in matches:
+            # Strip the text to remove any leading/trailing whitespaces
+            markdown_lines.append(match.strip().replace(')', '.', 1))
+        # Join the markdown lines with new lines to form the final markdown string
+        markdown_text = '\n'.join(markdown_lines)
+        return markdown_text
+    return text
 
 def is_input_valid(req):
     title = None
