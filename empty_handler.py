@@ -6,8 +6,6 @@ import ray
 
 
 # Initialize Ray and Ray Serve
-ray.init()
-serve.start()
 
 ray_serve_logger = logging.getLogger("ray.serve")
 
