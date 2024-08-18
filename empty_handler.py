@@ -17,12 +17,19 @@ class RiskyReasoning:
 
     async def __call__(self, request: starlette.requests.Request):
         req = await request.json()
-        pending_requests = ray.serve.context.get_serve_handle_stats().get("RiskyFeatures", {}).get("pending_requests",
-                                                                                                   0)
-        ray_serve_logger.warning(f"pending_requests  {pending_requests}")
+        #pending_requests = ray.serve.context.get_serve_handle_stats().get("RiskyFeatures", {}).get("pending_requests",
+        #                                                                                           0)
+        #ray_serve_logger.warning(f"pending_requests  {pending_requests}")
+        deployments = serve.list_deployments()
+
+        # Loop through the deployments and print metadata
+        for name, deployment in deployments.items():
+            ray_serve_logger.warning(f"Deployment: {name}")
+            ray_serve_logger.warning(f"Options: {deployment.to_dict()}")
+
         ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
         time.sleep(10)
-        return f"hellooooooo  {pending_requests}"
+        return f"hellooooooo "
 
 
 
