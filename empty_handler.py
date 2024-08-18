@@ -2,6 +2,7 @@ import time
 import starlette
 from ray import serve
 import logging
+import ray
 
 ray_serve_logger = logging.getLogger("ray.serve")
 
@@ -16,9 +17,12 @@ class RiskyReasoning:
 
     async def __call__(self, request: starlette.requests.Request):
         req = await request.json()
+        pending_requests = ray.serve.context.get_serve_handle_stats().get("RiskyFeatures", {}).get("pending_requests",
+                                                                                                   0)
+        ray_serve_logger.warning(f"pending_requests  {pending_requests}")
         ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
         time.sleep(10)
-        return "hellooooooo"
+        return f"hellooooooo  {pending_requests}"
 
 
 
