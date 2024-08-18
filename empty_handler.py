@@ -20,14 +20,11 @@ class RiskyReasoning:
         #pending_requests = ray.serve.context.get_serve_handle_stats().get("RiskyFeatures", {}).get("pending_requests",
         #                                                                                           0)
         #ray_serve_logger.warning(f"pending_requests  {pending_requests}")
-        deployments = serve.list_deployments()
+        deployments = serve.get_replica_context()
 
-        # Loop through the deployments and print metadata
-        for name, deployment in deployments.items():
-            ray_serve_logger.warning(f"Deployment: {name}")
-            ray_serve_logger.warning(f"Options: {deployment.to_dict()}")
 
-        ray_serve_logger.warning(f"Missing title or description field in the json request = {req}")
+
+        ray_serve_logger.warning(f"Missing title or description field in the json request = {deployments}")
         time.sleep(10)
         return f"hellooooooo "
 
