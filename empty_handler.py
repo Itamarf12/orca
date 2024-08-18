@@ -32,6 +32,7 @@ class RiskyReasoning:
     async def __call__(self, request: starlette.requests.Request):
         req = await request.json()
         result_ref = self.actor.heavy_compute.remote(req["title"])
+        result = await ray.get(result_ref)
 
         ray_serve_logger.warning(f"Missing title or description field in the json request")
         time.sleep(10)
