@@ -44,7 +44,7 @@ class RiskyReasoning:
         # Create a remote actor instance
         self.actor = HeavyComputeActor.remote()
 
-    async def __call__(self, request):
+    async def __call__(self, request: starlette.requests.Request):
         # Get input data from the request
         data = await request.json()
 
