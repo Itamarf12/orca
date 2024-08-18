@@ -24,20 +24,16 @@ class HeavyComputeActor:
 class RiskyReasoning:
     def __init__(self):
         ray_serve_logger.warning(f"1111111111111")
+        self.actor = HeavyComputeActor.remote()
 
     def translate(self, text: str) -> str:
         return "bbbbbbbbbbbb"
 
     async def __call__(self, request: starlette.requests.Request):
         req = await request.json()
-        #pending_requests = ray.serve.context.get_serve_handle_stats().get("RiskyFeatures", {}).get("pending_requests",
-        #                                                                                           0)
-        #ray_serve_logger.warning(f"pending_requests  {pending_requests}")
-        deployments = serve.get_replica_context()
+        result_ref = self.actor.heavy_compute.remote(req["title"])
 
-
-
-        ray_serve_logger.warning(f"Missing title or description field in the json request = {deployments}")
+        ray_serve_logger.warning(f"Missing title or description field in the json request")
         time.sleep(10)
         return f"hellooooooo "
 
