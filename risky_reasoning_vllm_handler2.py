@@ -259,6 +259,25 @@ def security_review_to_markdown(security_review_questions: List[str]):
     return markdown_text
 
 
+def extract_risk_info(x):
+    return {
+        "category": x[0].category.value,
+        "reason": x[0].reason,
+        "security review questions": security_review_to_markdown(x[1].security_review_questions),
+        "threat model": threat_model_to_markdown(x[2].threat_model)
+    }
+
+def is_input_valid(req):
+    title = None
+    description = None
+    if 'title' in req and 'description' in req:
+        title = req['title']
+        description = req['description']
+    if title is None or description is None:
+        ray_serve_logger.error(f"Risky-Feature-Reasoning-Inference : Input request is not valid")
+        return None, None
+    return title, description
+
 @serve.deployment()
 class RiskyReasoning:
     def __init__(self):
