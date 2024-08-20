@@ -242,6 +242,23 @@ def get_risky_info(is_risky_generator, risky_generator, risky_security_review, r
     return None
 
 
+def threat_model_to_markdown(threat_model: List[Threat]) -> str:
+    markdown_text = ""
+    for threat in threat_model:
+        markdown_text += f"#### {threat.category}\n"
+        markdown_text += f"- **Story:** {threat.story}\n"
+        markdown_text += f"- **Impact:** {threat.impact}\n"
+        markdown_text += f"- **Mitigation:** {threat.mitigation}\n\n"
+    return markdown_text
+
+
+def security_review_to_markdown(security_review_questions: List[str]):
+    markdown_text = ""
+    for i, question in enumerate(security_review_questions):
+        markdown_text += f"{i + 1}. {question}\n"
+    return markdown_text
+
+
 @serve.deployment()
 class RiskyReasoning:
     def __init__(self):
