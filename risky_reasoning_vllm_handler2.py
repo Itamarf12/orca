@@ -197,6 +197,51 @@ Task: Upon review of the specified Jira ticket, determine and concisely state th
     prompt = f"<|im_start|>system\n{system_message}<|im_end|>\n<|im_start|>user\n{user_message}<|im_end|>\n<|im_start|>assistant"
     return prompt
 
+
+def retries(generator, prompt, res_obj, has_elements, retries=3):
+    cur_iter = 0
+    while has_elements(res_obj):
+        res_obj = generator(prompt, max_tokens=MAX_TOKENS)
+        cur_iter += 1
+        print(f"iteration: {cur_iter}")
+        if cur_iter > retries:
+            break
+    return res_obj
+
+def get_risky_info(is_risky_generator, risky_generator, risky_security_review, risky_threat_model, title, description):
+    is_risky_gen = is_risky_generator(get_prompt1(title, description, is_risky_prompt))
+    if is_risky_gen == "True":
+        start = time.time()
+        risky_ticket = risky_generator(get_system_user_prompt(title, description, prompt1_prefix),
+                                       max_tokens=MAX_TOKENS)
+        print("1")
+        print(time.time() - start)
+        risky_category = risky_ticket.category.value
+        prefix = prompt2_prefix.replace("{risk_type}", risky_category)
+        security_review = SecurityReview(security_review_questions=[])
+        threat_model = ThreatModel(threat_model=[])
+        if risky_ticket.category != "Other":
+            security_review = retries(
+                risky_security_review,
+                get_system_user_prompt(title, description, prefix),
+                security_review,
+                lambda x: len(x.security_review_questions) == 0)
+            #                 security_review = risky_security_review(get_system_user_prompt(title, description, prefix))
+            print("2")
+            print(time.time() - start)
+            prefix = prompt3_prefix.replace("{risk_type}", risky_category)
+            threat_model = retries(
+                risky_threat_model,
+                get_system_user_prompt(title, description, prefix),
+                threat_model,
+                lambda x: len(x.threat_model) == 0)
+            # threat_model = risky_threat_model(get_system_user_prompt(title, description, prefix))
+            print("3")
+            print(time.time() - start)
+            return (risky_ticket, security_review, threat_model)
+    return None
+
+
 @serve.deployment()
 class RiskyReasoning:
     def __init__(self):
