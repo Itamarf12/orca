@@ -282,6 +282,7 @@ def is_input_valid(req):
 class RiskyReasoning:
     def __init__(self):
         ray_serve_logger.warning(f"1111111111111")
+        self.is_risky_generator, self.risky_generator, self.risky_security_review, self.risky_threat_model = load_model()
 
 
     def translate(self, text: str) -> str:
