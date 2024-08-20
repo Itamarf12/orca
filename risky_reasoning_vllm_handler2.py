@@ -66,6 +66,100 @@ class RiskyTicketMeta(BaseModel):
     security_review_questions: List[str]
     threat_model: List[Threat]
 
+
+
+prompt1_prefix = """
+This ticket is classified as high-risk.
+
+Based on the context provided, select the most appropriate risk category from the list below. Use "Other" only if absolutely none of the categories apply, ensuring that at least one of the predefined categories is considered first. Provide a concise reason that aligns explicitly with the selected category. 
+
+User response should include:
+- **Risk Category**: Choose one of the predefined categories.
+- **Reason**: A concise explanation aligning explicitly with the selected category.
+
+### Risk Categories:
+#### **Architecture Design**
+- **Definition**: This category involves risks related to the overall design and structure of the application or system. It includes changes that could impact the foundational components, modules, or frameworks in a way that affects the scalability, maintainability, or performance of the system.
+- **Examples**: Significant alterations to the application architecture, integration of new frameworks, refactoring large portions of the codebase, or redesigning key components.
+
+#### **Gen AI Usage**
+- **Definition**: This category pertains to the use of generative AI technologies within the application. This includes risks associated with implementing, training, and integrating AI models, as well as ensuring that they operate correctly and ethically.
+- **Examples**: Using AI for automatic content generation, implementing chatbots using natural language processing models, training new AI models, or integrating AI-driven recommendations.
+
+#### **Sensitive Data Handling**
+- **Definition**: This category involves risks associated with the processing, storage, and transmission of sensitive data. It includes ensuring compliance with data privacy regulations and protecting data from unauthorized access and breaches.
+- **Examples**: Encrypting sensitive information, implementing data masking, ensuring compliance with GDPR or HIPAA, and securing data at rest and in transit.
+
+#### **User Permissions And Access Management**
+- **Definition**: This deals with risks related to managing user permissions and access controls within the system. It includes ensuring that users have the appropriate levels of access and preventing unauthorized actions.
+- **Examples**: Implementing role-based access control (RBAC), managing user authentication and authorization, setting up multi-factor authentication, and auditing user access logs.
+
+#### **Third Party**
+- **Definition**: This category involves risks associated with integrating or relying on third-party services, libraries, or platforms. This includes dependency management and ensuring that third-party components do not introduce vulnerabilities.
+- **Examples**: Integrating third-party APIs, using external libraries or frameworks, dealing with third-party service outages, or compliance with third-party service agreements.
+
+
+**Note**:
+1. **Step 1**: Fully understand the ticket’s details and requirements.
+2. **Step 2**: Identify and select the most appropriate risk category from the predefined options that have the greatest impact on this ticket.
+3. **Step 3**: Provide a concise explanation for why this selected category is the most fitting.
+
+Use the selected risk category to guide your response. Focus on identifying the primary category only.
+"""
+
+prompt2_prefix = """
+This is a high-risk ticket and the risk type is '{risk_type}'.
+
+Based on the context provided generate:
+A list of up to 3 relevant questions that the AppSec team can ask during a security review with the developer implementing the ticket.
+
+### Instructions:
+**Security Review Questions**:
+   - Develop up to 3 specific, context-relevant questions that the AppSec team should ask during the security review. These questions should help ensure that all potential security risks are identified and addressed.
+
+**Note**:
+- The "Security Review Questions" must be highly context-specific, addressing the particular details of the ticket. For instance, if the ticket involves changes to database permissions, make sure that the questions specifically pertain to the specific database premissions related issues.
+- Ensure you comprehend the ticket's requirements and write "Security Review Questions" only specifically related to the changes requested in the ticket.
+- Make sure to give the most valuable security review questions.
+"""
+
+prompt3_prefix = """
+This is a high-risk ticket and the risk type is '{risk_type}'.
+
+Generate a detailed threat model using the STRIDE model, breaking down the feature request into 6 potential threats. Each threat should include:
+
+- **Threat Model using STRIDE**: A list of 6 potential threats with a clear "threat story" including:
+  - Story: Hypothetical scenario of the threat.
+  - Impact: Potential negative effects.
+  - Mitigation: Steps to mitigate the threat.
+
+### STRIDE Model:
+
+  - **Spoofing**: How an attacker might impersonate another user.
+  - **Tampering**: How data could be maliciously altered.
+  - **Repudiation**: How actions might be falsely denied.
+  - **Information Disclosure**: How sensitive info could be exposed.
+  - **Denial of Service**: How service might be disrupted.
+  - **Elevation of Privilege**: How unauthorized access might be gained.
+
+**Note**: Make sure the "Threat Model" is specific to the ticket's details and requested changes only.
+"""
+
+is_risky_prompt = """
+This ticket has been flagged as a high-risk item. Your task is to review this ticket thoroughly and confirm whether it indeed represents a risk.
+
+Please follow these steps:
+1. Carefully analyze the content and details of the ticket.
+2. Assess whether it meets the criteria for being classified as risky based on potential vulnerabilities, impact on security, and other relevant risk factors.
+3. If you determine that the ticket is indeed risky, respond with "True."
+4. If you are uncertain or conclude that the ticket is not risky, respond with "False."
+
+Your response should be either "True" (for risky) or "False" (for not risky).
+"""
+
+
+
+
 def load_model():
     ray_serve_logger.debug(f"Risky-Feature-Reasoning-Inference : Start Model loading ...")
     vllm_model = vllm.LLM(MODEL_NM, tensor_parallel_size=4)
