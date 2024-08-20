@@ -7,9 +7,9 @@ import vllm
 from outlines import models
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-# import re
-# from typing import List
-# from enum import Enum
+import re
+from typing import List
+from enum import Enum
 # from pydantic import BaseModel, constr, conint
 # import outlines
 # import time
