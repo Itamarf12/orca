@@ -3,6 +3,8 @@ import starlette
 from ray import serve
 import logging
 import ray
+import vllm
+
 
 
 # Initialize Ray and Ray Serve
