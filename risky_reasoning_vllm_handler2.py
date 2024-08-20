@@ -1,17 +1,30 @@
-import time
+# import time
+# import starlette
+# from ray import serve
+# import logging
+# import ray
+# import vllm
+# from outlines import models
+
 import starlette
 from ray import serve
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import logging
-import ray
+import re
 import vllm
-#from outlines import models
+from outlines import models
+from typing import List
+from enum import Enum
+from pydantic import BaseModel, constr, conint
+import outlines
+import time
 
 
-# Initialize Ray and Ray Serve
 
 ray_serve_logger = logging.getLogger("ray.serve")
-
-#@serve.deployment(ray_actor_options={"num_cpus": 3})
+ray_serve_logger.setLevel(logging.DEBUG)
+MODEL_NM = "microsoft/Orca-2-13b"
+DEVICE = 'auto' # 'cpu'
 
 
 @ray.remote
