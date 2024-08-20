@@ -80,6 +80,29 @@ def load_model():
     return is_risky_generator, risky_generator, risky_security_review, risky_threat_model
 
 
+
+def get_prompt1(title, description, prompt_prefix):
+    return f"""
+This is the details of a ticket: 
+title: 
+{title}
+
+description:
+{description}
+
+{prompt_prefix}
+    """
+
+def get_system_user_prompt(title, description, prompt_prefix):
+    system_message = """
+Role: Application Security (AppSec) Assistant
+Directive: Adhere strictly to the provided guidelines.
+Task: Upon review of the specified Jira ticket, determine and concisely state the security risk it presents.    
+    """
+    user_message = get_prompt1(title, description, prompt_prefix)
+    prompt = f"<|im_start|>system\n{system_message}<|im_end|>\n<|im_start|>user\n{user_message}<|im_end|>\n<|im_start|>assistant"
+    return prompt
+
 @serve.deployment()
 class RiskyReasoning:
     def __init__(self):
