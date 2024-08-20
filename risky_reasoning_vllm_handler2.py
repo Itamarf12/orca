@@ -3,6 +3,8 @@ import starlette
 from ray import serve
 import logging
 import ray
+import vllm
+from outlines import models
 
 
 # Initialize Ray and Ray Serve
@@ -38,7 +40,7 @@ class RiskyReasoning:
         ray.get(result_refs)
         ray_serve_logger.warning(f"Missing title or description field in the json request")
         time.sleep(10)
-        return f"hellooooooo "
+        return f"hellooooooo1 "
 
 # @serve.deployment
 # class RiskyReasoning:
