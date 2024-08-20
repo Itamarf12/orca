@@ -3,8 +3,8 @@ import starlette
 from ray import serve
 import logging
 import ray
-import vllm
-from outlines import models
+#import vllm
+#from outlines import models
 
 
 # Initialize Ray and Ray Serve
