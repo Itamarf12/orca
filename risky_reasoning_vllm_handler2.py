@@ -288,6 +288,7 @@ class RiskyReasoning:
     async def __call__(self, request: starlette.requests.Request):
         req = await request.json()
         title, description = is_input_valid(req)
+        ray_serve_logger.debug(f"Is-Risky-Feature-Inference : aaaaaaaa {title}    {description}")
         reason_cat = {
                     "Risk Category": None,
                     "Reason": None,
@@ -295,11 +296,11 @@ class RiskyReasoning:
                     "Threat Model": None
                 }
 
-        try:
-            inference_result = get_risky_info(self.is_risky_generator, self.risky_generator, self.risky_security_review, self.risky_threat_model, title, description)
-            reason_cat = extract_risk_info(inference_result)
-        except Exception:
-            ray_serve_logger.debug(f"Is-Risky-Feature-Inference : Error on inference.")
+        #try:
+        inference_result = get_risky_info(self.is_risky_generator, self.risky_generator, self.risky_security_review, self.risky_threat_model, title, description)
+        reason_cat = extract_risk_info(inference_result)
+        #except Exception:
+        ray_serve_logger.debug(f"Is-Risky-Feature-Inference : Error on inference.")
 
         return reason_cat
 
