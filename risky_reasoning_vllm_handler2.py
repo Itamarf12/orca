@@ -21,6 +21,8 @@ ray_serve_logger = logging.getLogger("ray.serve")
 ray_serve_logger.setLevel(logging.DEBUG)
 MODEL_NM = "microsoft/Orca-2-13b"
 DEVICE = 'auto' # 'cpu'
+MAX_TOKENS = 20000
+
 
 
 
