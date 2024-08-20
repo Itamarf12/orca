@@ -3,7 +3,7 @@ import starlette
 from ray import serve
 import logging
 import ray
-#import vllm
+import vllm
 #from outlines import models
 
 
