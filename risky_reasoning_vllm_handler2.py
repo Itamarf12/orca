@@ -261,9 +261,24 @@ def security_review_to_markdown(security_review_questions: List[str]):
     return markdown_text
 
 
+def category_format(cat):
+    if cat == "Architecture Design":
+        return "ArchitectureDesign"
+    elif cat == "Gen Ai Usage":
+        return "GenAiUsage"
+    elif cat == "Sensitive Data Handling":
+        return "SensitiveDataHandling"
+    elif cat == "Third Party":
+        return "ThirdPartyIntegrationsAndDependencies"
+    elif cat == "User Permissions And Access Management":
+        return "UserPermissionsAndAccessManagement"
+    else:
+        return "Other"
+
+
 def extract_risk_info(x):
     return {
-        "category": x[0].category.value,
+        "category": category_format(x[0].category.value),
         "reason": x[0].reason,
         "security review questions": security_review_to_markdown(x[1].security_review_questions),
         "threat model": threat_model_to_markdown(x[2].threat_model)
