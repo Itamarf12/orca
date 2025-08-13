@@ -3,6 +3,7 @@ import starlette
 from ray import serve
 import logging
 import ray
+from outlines import models
 
 #h
 # Initialize Ray and Ray Serve
